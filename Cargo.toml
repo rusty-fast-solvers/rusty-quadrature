@@ -1,0 +1,25 @@
+[package]
+name = "rusty-quadrature"
+version = "0.0.1"
+authors = ["Timo Betcke"]
+edition = "2018"
+description = "A quadrature library for boundary element computations."
+license = "BSD-3-Clause"
+homepage = "https://github.com/rusty-fast-solvers/rusty-quadrature"
+repository = "https://github.com/rusty-fast-solvers/rusty-quadrature"
+readme = "README.md"
+keywords = ["numerics"]
+categories = ["mathematics", "science"]
+
+[lib]
+name = "rusty_quadrature"
+crate-type = ["lib", "cdylib"]
+
+[dependencies]
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+
+
+[package.metadata.docs.rs]
+rustdoc-args = [ "--html-in-header", "katex-header.html" ]
