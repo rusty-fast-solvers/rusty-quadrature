@@ -19,7 +19,6 @@ pub enum EntityType {
 /// Examples are triangles, quadrilaterals, hexahedrals, etc.
 pub trait CellType {
     const DIM: usize;
-
 }
 
 /// A topology that maps to a unit triangle.
@@ -80,7 +79,6 @@ pub trait NumericalQuadratureRule<C: CellType> {
     fn get_dim() -> usize {
         C::DIM
     }
-
 }
 
 /// A trait for singular quadrature rules. These are rules that
@@ -89,7 +87,6 @@ pub trait NumericalQuadratureRule<C: CellType> {
 /// is two separate quadrature containers for the two cells that
 /// are integrated against each other.
 pub trait SingularQuadratureRule<C: CellType> {
-
     /// Return the quadrature rule for two cells.
     ///
     /// The method takes an `order` parameter and `connectivity` information
