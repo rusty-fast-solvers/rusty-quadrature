@@ -1,38 +1,8 @@
 //! Type definitions.
 
-/// This enum defines multi-dimensional entities.
-///
-/// We have
-/// - Point as 0 dimensional entity.
-/// - Edge as 1 dimensional entity.
-/// - Face as 2 dimensional entity.
-/// - Volume as 3 dimensional entity.
-pub enum EntityType {
-    Point,
-    Edge,
-    Face,
-    Volume,
-}
+pub use rusty_element::cell::*;
 
-/// A cell type is a marker for the topological type of a cell.
-///
-/// Examples are triangles, quadrilaterals, hexahedrals, etc.
-pub trait CellType {
-    const DIM: usize;
-}
 
-/// A topology that maps to a unit triangle.
-struct Triangle;
-
-/// A topology that maps to a unit square.
-struct Quadrilateral;
-
-impl CellType for Triangle {
-    const DIM: usize = 2;
-}
-impl CellType for Quadrilateral {
-    const DIM: usize = 2;
-}
 
 /// A container for numerical quadrature rules.
 pub struct NumericalQuadratureContainer {
@@ -57,28 +27,26 @@ pub struct NumericalQuadratureContainer {
 /// quadrature rules. We need to know how cells are
 /// connected to each other.
 pub struct CellToCellConnectivity {
-    /// Describe the type of the entity that is shared
-    /// by two cells. Cells can be connected via a shared
-    /// point, shared edge, shared surface, etc.
-    pub entity_type: EntityType,
+    /// Describe the dimension of the entity that
+    /// connects the two cells (0 for point, 1 for edge, etc.)
+    pub connectivity_dimension: usize,
 
     /// The local indices for the shared entity,
     /// for example the first edge of one triangle
     /// could be shared with the second edge of the neighboring
     /// triangle.
-    pub local_entity_indices: (usize, usize),
+    pub local_indices: (usize, usize),
 }
 
 /// A trait for a general numerical quadrature rule. Depending
 /// on a specified order a `NumericalQuadratureContainer` is
 /// returned with the weights and points of the rule.
-pub trait NumericalQuadratureRule<C: CellType> {
+pub trait NumericalQuadratureRule {
+    type C: ReferenceCell;
     /// Return the quadrature rule for a given order.
     fn get_rule(&self, order: usize) -> NumericalQuadratureContainer;
 
-    fn get_dim() -> usize {
-        C::DIM
-    }
+    fn cell(&self) -> &Self::C;
 }
 
 /// A trait for singular quadrature rules. These are rules that
@@ -86,7 +54,7 @@ pub trait NumericalQuadratureRule<C: CellType> {
 /// So we need to supply the `Connectivity` structure. The result
 /// is two separate quadrature containers for the two cells that
 /// are integrated against each other.
-pub trait SingularQuadratureRule<C: CellType> {
+pub trait SingularQuadratureRule<C: ReferenceCell> {
     /// Return the quadrature rule for two cells.
     ///
     /// The method takes an `order` parameter and `connectivity` information
@@ -97,7 +65,5 @@ pub trait SingularQuadratureRule<C: CellType> {
         connectivity: CellToCellConnectivity,
     ) -> (NumericalQuadratureContainer, NumericalQuadratureContainer);
 
-    fn get_dim() -> usize {
-        C::DIM
-    }
+    fn cell(&self) -> &C;
 }
