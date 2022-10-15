@@ -4,19 +4,24 @@
 use super::{GaussRule, Interval};
 use crate::types::NumericalQuadratureContainer;
 use crate::types::NumericalQuadratureRule;
-use rusty_element::cell::ReferenceCell;
 
 impl NumericalQuadratureRule for GaussRule<Interval> {
-    type C = Interval;
 
-    fn cell(&self) -> &Self::C {
-        &self.cell
+    fn dim(&self) -> usize {
+        1
     }
-    fn get_rule(&self, order: usize) -> crate::types::NumericalQuadratureContainer {
+
+    fn get_rule(&self, order: usize) -> Result<crate::types::NumericalQuadratureContainer, ()> {
+
+        // Only rules up to 30 points are implemented.
+        if (order == 0) || (order > 30) {
+            return Err(())
+        }
+
         let npoints = order;
         let address = (npoints * (npoints - 1)) / 2;
-        NumericalQuadratureContainer {
-            dim: self.cell().dim(),
+        Ok(NumericalQuadratureContainer {
+            dim: self.dim(),
             points: POINTS[address..(address + npoints)]
                 .iter()
                 .map(|item| 0.5 * (1.0 + item))
@@ -25,7 +30,7 @@ impl NumericalQuadratureRule for GaussRule<Interval> {
                 .iter()
                 .map(|item| 0.5 * item)
                 .collect(),
-        }
+        })
     }
 }
 

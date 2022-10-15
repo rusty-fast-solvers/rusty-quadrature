@@ -6,33 +6,36 @@ use crate::types::NumericalQuadratureContainer;
 use crate::types::NumericalQuadratureRule;
 
 impl NumericalQuadratureRule for GaussRule<Quadrilateral> {
-    type C = Quadrilateral;
 
-    fn cell(&self) -> &Self::C {
-        &self.cell
+    fn dim(&self) -> usize {
+        2
     }
-    fn get_rule(&self, order: usize) -> crate::types::NumericalQuadratureContainer {
-        let interval_rule = GaussRule::<Interval>::new().get_rule(order);
+
+    fn get_rule(&self, order: usize) -> Result<crate::types::NumericalQuadratureContainer, ()> {
+
+        let interval_rule = GaussRule::<Interval>::new().get_rule(order)?;
 
         let n = interval_rule.weights.len();
+        assert_eq!(n, interval_rule.points.len());
 
         let mut quad_points = Vec::<f64>::with_capacity(2 * n * n);
         let mut quad_weights = Vec::<f64>::with_capacity(n * n);
 
+
         for i in 0..n {
             for j in 0..n {
-                quad_points.push(*interval_rule.points.get(i).unwrap());
-                quad_points.push(*interval_rule.points.get(j).unwrap());
+                quad_points.push(interval_rule.points[i]);
+                quad_points.push(interval_rule.points[j]);
                 quad_weights.push(
-                    *interval_rule.weights.get(i).unwrap() * *interval_rule.weights.get(j).unwrap(),
+                    interval_rule.weights[i] * interval_rule.weights[j],
                 );
             }
         }
 
-        NumericalQuadratureContainer {
-            dim: 2,
+        Ok(NumericalQuadratureContainer {
+            dim: self.dim(),
             points: quad_points,
             weights: quad_weights,
-        }
+        })
     }
 }

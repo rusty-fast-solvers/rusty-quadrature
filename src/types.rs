@@ -42,11 +42,12 @@ pub struct CellToCellConnectivity {
 /// on a specified order a `NumericalQuadratureContainer` is
 /// returned with the weights and points of the rule.
 pub trait NumericalQuadratureRule {
-    type C: ReferenceCell;
     /// Return the quadrature rule for a given order.
-    fn get_rule(&self, order: usize) -> NumericalQuadratureContainer;
+    fn get_rule(&self, order: usize) -> Result<NumericalQuadratureContainer, ()>;
 
-    fn cell(&self) -> &Self::C;
+    // Dimension of quadrature points.
+    fn dim(&self) -> usize;
+
 }
 
 /// A trait for singular quadrature rules. These are rules that
@@ -54,16 +55,17 @@ pub trait NumericalQuadratureRule {
 /// So we need to supply the `Connectivity` structure. The result
 /// is two separate quadrature containers for the two cells that
 /// are integrated against each other.
-pub trait SingularQuadratureRule<C: ReferenceCell> {
+pub trait SingularQuadratureRule {
     /// Return the quadrature rule for two cells.
     ///
     /// The method takes an `order` parameter and `connectivity` information
     /// that specifies how the two cells are linked to each other.
-    fn get_rule(
+    fn get_singular_rule(
         &self,
         order: usize,
         connectivity: CellToCellConnectivity,
-    ) -> (NumericalQuadratureContainer, NumericalQuadratureContainer);
+    ) -> Result<(NumericalQuadratureContainer, NumericalQuadratureContainer), ()>;
 
-    fn cell(&self) -> &C;
+    // Dimension of quadrature points.
+    fn dim(&self) -> usize;
 }
