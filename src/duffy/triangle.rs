@@ -1,0 +1,2 @@
+//! Duffy rules for triangles.
+
