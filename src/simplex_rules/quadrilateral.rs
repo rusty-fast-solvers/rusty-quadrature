@@ -1,11 +1,11 @@
 //! Gauss quadrature rule for a quadrilateral
 //!
 
-use super::{GaussRule, Interval, Quadrilateral};
+use super::{SimplexRule, Interval, Quadrilateral};
 use crate::types::NumericalQuadratureContainer;
 use crate::types::NumericalQuadratureRule;
 
-impl NumericalQuadratureRule for GaussRule<Quadrilateral> {
+impl NumericalQuadratureRule for SimplexRule<Quadrilateral> {
 
     fn dim(&self) -> usize {
         2
@@ -13,7 +13,7 @@ impl NumericalQuadratureRule for GaussRule<Quadrilateral> {
 
     fn get_rule(&self, order: usize) -> Result<crate::types::NumericalQuadratureContainer, ()> {
 
-        let interval_rule = GaussRule::<Interval>::new().get_rule(order)?;
+        let interval_rule = SimplexRule::<Interval>::new().get_rule(order)?;
 
         let n = interval_rule.weights.len();
         assert_eq!(n, interval_rule.points.len());

@@ -6,28 +6,30 @@ use rusty_element::cell::Quadrilateral;
 use rusty_element::cell::Triangle;
 pub use rusty_element::cell::{Interval, ReferenceCell};
 
+pub mod simplex_rule_definitions;
+pub mod gauss_legendre;
 pub mod interval;
 pub mod quadrilateral;
 pub mod triangle;
 
-pub struct GaussRule<C: ReferenceCell> (
+pub struct SimplexRule<C: ReferenceCell> (
     PhantomData<C>,
 );
 
-impl GaussRule<Interval> {
+impl SimplexRule<Interval> {
     pub fn new() -> Self {
-        GaussRule(PhantomData)
+        SimplexRule(PhantomData)
     }
 }
 
-impl GaussRule<Quadrilateral> {
+impl SimplexRule<Quadrilateral> {
     pub fn new() -> Self {
-        GaussRule(PhantomData)
+        SimplexRule(PhantomData)
     }
 }
 
-impl GaussRule<Triangle> {
+impl SimplexRule<Triangle> {
     pub fn new() -> Self {
-        GaussRule(PhantomData)
+        SimplexRule(PhantomData)
     }
 }
