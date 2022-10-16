@@ -2,12 +2,16 @@
 
 pub use rusty_element::cell::*;
 
-
-
-/// A container for numerical quadrature rules.
-pub struct NumericalQuadratureContainer {
+/// Definition of a numerical quadrature rule.
+pub struct NumericalQuadratureDefinition {
     /// The dimension d of a single point.
     pub dim: usize,
+
+    /// The order of the quadrature rule.
+    pub order: usize,
+
+    /// The number of points of the quadrature rule.
+    pub npoints: usize,
 
     /// The weights of the quadrature rule.
     pub weights: Vec<f64>,
@@ -38,16 +42,12 @@ pub struct CellToCellConnectivity {
     pub local_indices: (usize, usize),
 }
 
-/// A trait for a general numerical quadrature rule. Depending
-/// on a specified order a `NumericalQuadratureContainer` is
+/// A trait for obtaining a numerical quadrature rule. Depending
+/// on a specified number of points a `NumericalQuadratureDefinition` is
 /// returned with the weights and points of the rule.
-pub trait NumericalQuadratureRule {
+pub trait NumericalQuadratureGenerator {
     /// Return the quadrature rule for a given order.
-    fn get_rule(&self, order: usize) -> Result<NumericalQuadratureContainer, ()>;
-
-    // Dimension of quadrature points.
-    fn dim(&self) -> usize;
-
+    fn get_rule(&self, npoints: usize) -> Result<NumericalQuadratureDefinition, ()>;
 }
 
 /// A trait for singular quadrature rules. These are rules that
@@ -55,7 +55,7 @@ pub trait NumericalQuadratureRule {
 /// So we need to supply the `Connectivity` structure. The result
 /// is two separate quadrature containers for the two cells that
 /// are integrated against each other.
-pub trait SingularQuadratureRule {
+pub trait SingularQuadratureGenerator {
     /// Return the quadrature rule for two cells.
     ///
     /// The method takes an `order` parameter and `connectivity` information
@@ -64,8 +64,6 @@ pub trait SingularQuadratureRule {
         &self,
         order: usize,
         connectivity: CellToCellConnectivity,
-    ) -> Result<(NumericalQuadratureContainer, NumericalQuadratureContainer), ()>;
+    ) -> Result<(NumericalQuadratureDefinition, NumericalQuadratureDefinition), ()>;
 
-    // Dimension of quadrature points.
-    fn dim(&self) -> usize;
 }

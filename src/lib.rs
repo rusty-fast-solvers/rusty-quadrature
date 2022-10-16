@@ -6,3 +6,4 @@ extern crate lazy_static;
 
 pub mod types;
 pub mod simplex_rules;
+pub mod simplex_rule_definitions;

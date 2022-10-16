@@ -18,6 +18,8 @@ crate-type = ["lib", "cdylib"]
 [dependencies]
 rusty-element = {git = "https://github.com/rusty-fast-solvers/rusty-element"}
 lazy_static = "1.4"
+paste = "1.*"
+approx = "0.5"
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
