@@ -77,8 +77,11 @@ pub struct CellToCellConnectivity {
     /// The local indices for the shared entity,
     /// for example the first edge of one triangle
     /// could be shared with the second edge of the neighboring
-    /// triangle.
-    pub local_indices: (usize, usize),
+    /// triangle. The local indices are vectors for each entity
+    /// to describe that the connection is possible through multiple
+    /// entities, e.g. if cell to cell connectivity is described via
+    /// matched up vertices.
+    pub local_indices: (Vec<usize>, Vec<usize>),
 }
 
 /// A trait for obtaining a numerical quadrature rule. Depending

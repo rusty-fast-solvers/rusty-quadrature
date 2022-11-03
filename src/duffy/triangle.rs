@@ -8,16 +8,6 @@ fn transform_coords(points: &mut Vec<f64>, fun: &impl Fn((f64, f64)) -> (f64, f6
     }
 }
 
-/// Return the associated vertex indices from an edge index.
-fn edge_to_vertices(edge: usize) -> Result<(usize, usize), ()> {
-    match edge {
-        0 => Ok((1, 2)),
-        1 => Ok((2, 0)),
-        2 => Ok((0, 1)),
-        _ => Err(()),
-    }
-}
-
 fn create_triangle_mapper(v0: usize, v1: usize) -> impl Fn((f64, f64)) -> (f64, f64) {
     // The vertices in our reference element are
     // 0: (0, 0), 1: (1, 0), 2: (0, 1)
@@ -171,8 +161,8 @@ fn identical_triangles(
 
 fn edge_adjacent_triangles(
     interval_rule: &NumericalQuadratureDefinition,
-    test_singular_edge: usize,
-    trial_singular_edge: usize,
+    test_singular_edge_vertices: (usize, usize),
+    trial_singular_edge_vertices: (usize, usize),
 ) -> TestTrialNumericalQuadratureDefinition {
     let NumericalQuadratureDefinition {
         dim,
@@ -254,11 +244,17 @@ fn edge_adjacent_triangles(
         }
     }
 
-    let (v0, v1) = edge_to_vertices(test_singular_edge).unwrap();
-    transform_coords(&mut test_output_points, &create_triangle_mapper(1, 2));
-
-    let (v0, v1) = edge_to_vertices(trial_singular_edge).unwrap();
-    transform_coords(&mut trial_output_points, &create_triangle_mapper(0, 2));
+    transform_coords(
+        &mut test_output_points,
+        &create_triangle_mapper(test_singular_edge_vertices.0, test_singular_edge_vertices.1),
+    );
+    transform_coords(
+        &mut trial_output_points,
+        &create_triangle_mapper(
+            trial_singular_edge_vertices.0,
+            trial_singular_edge_vertices.1,
+        ),
+    );
 
     TestTrialNumericalQuadratureDefinition {
         dim: *dim,
@@ -273,7 +269,7 @@ fn edge_adjacent_triangles(
 #[cfg(test)]
 
 mod test {
-    use approx::assert_ulps_eq;
+    use approx::{assert_relative_eq, assert_ulps_eq};
 
     use super::*;
 
@@ -307,7 +303,7 @@ mod test {
         use crate::simplex_rules::simplex_rule;
         use crate::types::ReferenceCellType;
 
-        for npoints in 1..30 {
+        let compute_integral = |npoints: usize| -> f64 {
             let rule = simplex_rule(ReferenceCellType::Interval, npoints).unwrap();
 
             let singular_rule = identical_triangles(&rule);
@@ -330,8 +326,37 @@ mod test {
                 sum += laplace_green(x1, x2, y1, y2) * weight;
             }
 
-            println!("Identical triangle value {}", sum);
-        }
+            sum
+        };
+
+        // The comparison values have been created with Bempp-cl
+        // For the first 4 digits 0.0798 we also have independent
+        // confirmation.
+        // Comparisons were also performed with legacy Bempp.
+        // The corresponding results are (order parameter refers to 
+        // the corresponding orders in legacy Bempp)
+        // Order 2: 0.079267768872634842
+        // Order 6: 0.07980853550151136
+        // Order 14: 0.079821438597427713
+
+        assert_relative_eq!(
+            compute_integral(2),
+            0.07926776887263483,
+            epsilon = 0.0,
+            max_relative = 1E-13
+        );
+        assert_relative_eq!(
+            compute_integral(4),
+            0.07980853550151085,
+            epsilon = 0.0,
+            max_relative = 1E-13
+        );
+        assert_relative_eq!(
+            compute_integral(8),
+            0.07982143859742521,
+            epsilon = 0.0,
+            max_relative = 1E-13
+        );
     }
 
     #[test]
@@ -350,10 +375,10 @@ mod test {
         let reference_map =
             |point: (f64, f64)| -> (f64, f64) { (1.0 - point.1, point.0 + point.1) };
 
-        for npoints in 1..30 {
+        let compute_integral = |npoints: usize| -> f64 {
             let rule = simplex_rule(ReferenceCellType::Interval, npoints).unwrap();
 
-            let singular_rule = edge_adjacent_triangles(&rule, 0, 1);
+            let singular_rule = edge_adjacent_triangles(&rule, (1, 2), (0, 2));
 
             let mut sum = 0.0;
 
@@ -371,8 +396,36 @@ mod test {
                 let weight = singular_rule.weights[index];
                 sum += laplace_green(x1, x2, y1, y2) * weight;
             }
+            sum
+        };
 
-            println!("Edge triangle value {}", sum);
-        }
+        // The comparison values are obtained from computations
+        // with Bempp-cl
+        // Comparisons were also performed with legacy Bempp.
+        // Similar results are (order refers to order parameter in
+        // legacy Bempp):
+        // Order 2: 0.03835750527929082
+        // Order 4: 0.038477651910551768
+        // Order 8: 0.038478803829805695
+
+
+        assert_relative_eq!(
+            compute_integral(2),
+            0.03835750527929083,
+            epsilon = 0.0,
+            max_relative = 1E-13
+        );
+        assert_relative_eq!(
+            compute_integral(4),
+            0.03847765191055147,
+            epsilon = 0.0,
+            max_relative = 1E-13
+        );
+        assert_relative_eq!(
+            compute_integral(8),
+            0.038478803829804516,
+            epsilon = 0.0,
+            max_relative = 1E-13
+        );
     }
 }
