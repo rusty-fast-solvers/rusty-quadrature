@@ -25,6 +25,45 @@ pub struct NumericalQuadratureDefinition {
     pub points: Vec<f64>,
 }
 
+/// Definition of a quadrature rule for double test/trial integrals.
+/// 
+/// This is necessary in cases where such integrals cannot be evaluated via
+/// tensor application of rules for one simplex, such as for integration of
+/// weak singularities (e.g. Duffy transformation rules).
+pub struct TestTrialNumericalQuadratureDefinition {
+    /// The dimension d of a single point.
+    pub dim: usize,
+
+    /// The order of the quadrature rule.
+    pub order: usize,
+
+    /// The number of points of the quadrature rule.
+    pub npoints: usize,
+
+    /// The weights of the quadrature rule.
+    pub weights: Vec<f64>,
+    /// The test point coordinates of the quadrature rule.
+    ///
+    /// A single point has the coordinates p_1, p_2, ..., p_d,
+    /// with d being the dimension of the point (typically, 1, 2, or 3).
+    /// The vector points stores all points in consecutive order.
+    /// Hence, the first point starts at position zero, the second point at
+    /// position d, and the third point at position 2d.
+    pub test_points: Vec<f64>,
+
+    /// The trial point coordinates of the quadrature rule.
+    ///
+    /// A single point has the coordinates p_1, p_2, ..., p_d,
+    /// with d being the dimension of the point (typically, 1, 2, or 3).
+    /// The vector points stores all points in consecutive order.
+    /// Hence, the first point starts at position zero, the second point at
+    /// position d, and the third point at position 2d.
+    pub trial_points: Vec<f64>,
+
+}
+
+
+
 /// Storage for connectivity information.
 ///
 /// Connectivity is important for many singular
