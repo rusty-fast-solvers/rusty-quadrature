@@ -2,6 +2,10 @@
 use crate::types::{NumericalQuadratureDefinition, TestTrialNumericalQuadratureDefinition};
 use itertools::Itertools;
 
+/// Apply a callable to each tuple chunk (single point) of an array.
+/// 
+/// Each 2-tuple in `points` represents a 2d point. The callable is applied to
+/// each point and transforms it to a new point.
 fn transform_coords(points: &mut Vec<f64>, fun: &impl Fn((f64, f64)) -> (f64, f64)) {
     for (first, second) in points.iter_mut().tuples() {
         (*first, *second) = fun((*first, *second));
@@ -266,6 +270,82 @@ fn edge_adjacent_triangles(
     }
 }
 
+fn vertex_adjacent_triangles(
+    interval_rule: &NumericalQuadratureDefinition,
+    test_singular_vertex: usize,
+    trial_singular_vertex: usize,
+) -> TestTrialNumericalQuadratureDefinition {
+    let NumericalQuadratureDefinition {
+        dim,
+        order,
+        npoints,
+        weights,
+        points,
+    } = interval_rule;
+
+    let n_output_points = 2 * npoints * npoints * npoints * npoints;
+
+    let mut test_output_points = Vec::<f64>::with_capacity(2 * n_output_points);
+    let mut trial_output_points = Vec::<f64>::with_capacity(2 * n_output_points);
+    let mut output_weights = Vec::<f64>::with_capacity(n_output_points);
+
+    for index1 in 0..*npoints {
+        for index2 in 0..*npoints {
+            for index3 in 0..*npoints {
+                for index4 in 0..*npoints {
+                    let eta1 = points[index1];
+                    let eta2 = points[index2];
+                    let eta3 = points[index3];
+                    let xi = points[index4];
+
+                    // First part
+
+                    let weight = weights[index1]
+                        * weights[index2]
+                        * weights[index3]
+                        * weights[index4]
+                        * xi
+                        * xi
+                        * xi
+                        * eta2;
+
+                    test_output_points.push(xi);
+                    test_output_points.push(xi * eta1);
+                    trial_output_points.push(xi * eta2);
+                    trial_output_points.push(xi * eta2 * eta3);
+                    output_weights.push(weight);
+
+                    // Second part
+
+                    test_output_points.push(xi * eta2);
+                    test_output_points.push(xi * eta2 * eta3);
+                    trial_output_points.push(xi);
+                    trial_output_points.push(xi * eta1);
+                    output_weights.push(weight);
+                }
+            }
+        }
+    }
+
+    transform_coords(
+        &mut test_output_points,
+        &create_triangle_mapper(test_singular_vertex, (test_singular_vertex + 1) % 3),
+    );
+    transform_coords(
+        &mut trial_output_points,
+        &create_triangle_mapper(trial_singular_vertex, (trial_singular_vertex + 1) % 3),
+    );
+
+    TestTrialNumericalQuadratureDefinition {
+        dim: *dim,
+        order: *order,
+        npoints: n_output_points,
+        weights: output_weights,
+        test_points: test_output_points,
+        trial_points: trial_output_points,
+    }
+}
+
 #[cfg(test)]
 
 mod test {
@@ -333,7 +413,7 @@ mod test {
         // For the first 4 digits 0.0798 we also have independent
         // confirmation.
         // Comparisons were also performed with legacy Bempp.
-        // The corresponding results are (order parameter refers to 
+        // The corresponding results are (order parameter refers to
         // the corresponding orders in legacy Bempp)
         // Order 2: 0.079267768872634842
         // Order 6: 0.07980853550151136
@@ -408,7 +488,6 @@ mod test {
         // Order 4: 0.038477651910551768
         // Order 8: 0.038478803829805695
 
-
         assert_relative_eq!(
             compute_integral(2),
             0.03835750527929083,
@@ -428,4 +507,74 @@ mod test {
             max_relative = 1E-13
         );
     }
+
+    #[test]
+    fn test_vertex_adjacent_triangles() {
+        use crate::simplex_rules::simplex_rule;
+        use crate::types::ReferenceCellType;
+
+        // We create two triangles, the reference triangle
+        // (0, 0), (1,0). (0, 1)
+        // and the second triangle with coordinates
+        // (2, 0), (1, 1), (1, 0) 
+        // We integrate the Green's function against those two triangles.
+
+        // First we need to create the reference map to the second triangle.
+
+        let reference_map =
+            |point: (f64, f64)| -> (f64, f64) { (2.0 - point.0 - point.1, point.0) };
+
+        let compute_integral = |npoints: usize| -> f64 {
+            let rule = simplex_rule(ReferenceCellType::Interval, npoints).unwrap();
+
+            let singular_rule = vertex_adjacent_triangles(&rule, 1, 2);
+
+            let mut sum = 0.0;
+
+            for index in 0..singular_rule.npoints {
+                let (x1, x2) = (
+                    singular_rule.test_points[2 * index],
+                    singular_rule.test_points[2 * index + 1],
+                );
+
+                let (y1, y2) = reference_map((
+                    singular_rule.trial_points[2 * index],
+                    singular_rule.trial_points[2 * index + 1],
+                ));
+
+                let weight = singular_rule.weights[index];
+                sum += laplace_green(x1, x2, y1, y2) * weight;
+            }
+            sum
+        };
+
+        // The comparison values are obtained from computations
+        // with Bempp-cl
+        // Comparisons were also performed with legacy Bempp.
+        // Similar results are (order refers to order parameter in
+        // legacy Bempp):
+        // Order 2: 0.021000886281551452
+        // Order 6: 0.021034083055467126
+        // Order 14: 0.021034026656569074
+
+        assert_relative_eq!(
+            compute_integral(2),
+            0.021000886281551452,
+            epsilon = 0.0,
+            max_relative = 1E-13
+        );
+        assert_relative_eq!(
+            compute_integral(4),
+            0.02103408305546695,
+            epsilon = 0.0,
+            max_relative = 1E-13
+        );
+        assert_relative_eq!(
+            compute_integral(8),
+            0.02103402665656858,
+            epsilon = 0.0,
+            max_relative = 1E-13
+        );
+    }
+
 }
